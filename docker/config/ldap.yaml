@@ -6,8 +6,8 @@ srvconfig:
         ldapsport: "1686"
         ldapstls:
             cafile: "/config/ca.crt"
-            crtfile: "/config/cert.crt"
-            crtkeyfile: "/config/cert.key"
+            crtfile: "/config/ldap.crt"
+            crtkeyfile: "/config/ldap.key"
 database:
     - base: "dc=example,dc=org"
 schemas:

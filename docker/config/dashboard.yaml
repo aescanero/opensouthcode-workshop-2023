@@ -1,0 +1,6 @@
+cliconfig:
+  url: "ldap://ldap:1389"
+  passwordfile: "passfile"
+  base: "dc=example,dc=org"
+  user: "admin"
+  ldapstls: {}
