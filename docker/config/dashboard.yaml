@@ -1,6 +1,31 @@
 cliconfig:
-  url: "ldap://ldap:1389"
-  passwordfile: /config/passfile
+  url: "ldap://127.0.0.1:1389"
+  passwordfile: "passfile"
   base: "dc=example,dc=org"
   user: "admin"
   ldapstls: {}
+  awsconfig:
+    instancetype: t3.medium
+    region: us-east-1
+    imageid: ami-053b0d53c279acc90
+    userdata: |
+      #!/bin/bash
+      apt-get update
+      curl -sfL https://get.docker.com | sh -
+      curl -sfL https://get.k3s.io | sh -
+      cat >>/etc/sssd/sssd.conf <<EOF
+      [sssd]
+      config_file_version = 2
+      domains = disasterproject.com
+
+      [domain/disasterproject.com]
+      id_provider = ldap
+      auth_provider = ldap
+      ldap_uri = ldap://127.0.0.1:1389
+      cache_credentials = True
+      ldap_search_base = dc=example,dc=org
+      EOF
+      pam-auth-update --enable mkhomedir
+      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils
+      git clone https://github.com/aescanero/opensouthcode-workshop-2023
+
