@@ -132,8 +132,7 @@ services:
    image: docker.io/nginx
    volumes:
    - ./nginx/templates:/etc/nginx/templates:ro
-   - ./config/nginx.crt:/etc/nginx/ssl/self.cert:ro
-   - ./config/nginx.key:/etc/nginx/ssl/self-ssl.key:ro
+   - ./config/ssl:/etc/nginx/ssl:ro
    ports:
    - 8443:443
    links:
