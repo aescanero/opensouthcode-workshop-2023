@@ -1,6 +1,6 @@
 cliconfig:
-  url: "ldap://127.0.0.1:1389"
-  passwordfile: "passfile"
+  url: "ldap://ldap:1389"
+  passwordfile: "config/passfile"
   base: "dc=example,dc=org"
   user: "admin"
   ldapstls: {}
