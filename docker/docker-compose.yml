@@ -132,9 +132,10 @@ services:
    - ./nginx/templates:/etc/nginx/templates:ro
    - ./config/ssl:/etc/nginx/ssl:ro
    ports:
-   - 8443:443
+   - 443:443
    links:
    - guacamole
+   - dashboard
    networks:
      internal:
 ####################################################################################
