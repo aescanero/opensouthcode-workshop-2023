@@ -5,6 +5,11 @@ cliconfig:
   user: "admin"
   ldapstls: {}
   awsconfig:
+    network:
+      vpcname: demo.VPC
+      subnetname: demo.VPC-private
+      sgmanager: manager
+    az: a
     instancetype: t3.medium
     region: us-east-1
     imageid: ami-053b0d53c279acc90
