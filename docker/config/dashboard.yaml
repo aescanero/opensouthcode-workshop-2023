@@ -18,19 +18,38 @@ cliconfig:
       apt-get update
       curl -sfL https://get.docker.com | sh -
       curl -sfL https://get.k3s.io | sh -
-      cat >>/etc/sssd/sssd.conf <<EOF
+      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools
+      cat >/etc/sssd/sssd.conf << 'EOF'
       [sssd]
+      services = nss, pam
       config_file_version = 2
-      domains = disasterproject.com
+      domains = workshop
 
-      [domain/disasterproject.com]
+      [nss]
+
+      [pam]
+      offline_credentials_expiration = 3600
+
+      [domain/workshop]
+      cache_credentials = True
       id_provider = ldap
       auth_provider = ldap
-      ldap_uri = ldap://127.0.0.1:1389
+      chpass_provider = ldap
+      access_provider = ldap
+      ldap_uri = ldap://manager.workshop:1389
       cache_credentials = True
-      ldap_search_base = dc=example,dc=org
+      ldap_search_base = ou=users,dc=example,dc=org
+      ldap_default_bind_dn = cn=admin,dc=example,dc=org
+      ldap_default_authtok = ${PASSWORD}
+      ldap_access_filter = (objectClass=posixAccount)
+      ldap_access_order = filter
       EOF
+      chmod 600 -R /etc/sssd
+      chown -R root: /etc/sssd
+      sssctl config-check
+      systemctl restart sssd
+      systemctl enable sssd
       pam-auth-update --enable mkhomedir
-      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils
+      cd /root
       git clone https://github.com/aescanero/opensouthcode-workshop-2023
 
