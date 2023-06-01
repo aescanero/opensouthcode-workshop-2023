@@ -22,6 +22,7 @@ cliconfig:
       curl -sfL https://get.docker.com | sh -
       curl -sfL https://get.k3s.io | sh -
       apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates
+      addgroup ${USER} sudo
       mkdir -p /etc/sssd/certs
       cat >/etc/sssd/certs/ca.crt << 'EOF'
       ${CA.CRT}
