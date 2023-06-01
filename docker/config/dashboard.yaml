@@ -3,7 +3,10 @@ cliconfig:
   passwordfile: "config/passfile"
   base: "dc=example,dc=org"
   user: "admin"
-  ldapstls: {}
+  ldapstls:
+    cafile: "/config/ca.crt"
+    crtfile: "/config/ldap.crt"
+    crtkeyfile: "/config/ldap.key"
   awsconfig:
     network:
       vpcname: demo.VPC
@@ -18,7 +21,11 @@ cliconfig:
       apt-get update
       curl -sfL https://get.docker.com | sh -
       curl -sfL https://get.k3s.io | sh -
-      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools
+      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates
+      mkdir -p /etc/sssd/certs
+      cat >/etc/sssd/certs/ca.crt << 'EOF'
+      ${CA.CRT}
+      EOF
       cat >/etc/sssd/sssd.conf << 'EOF'
       [sssd]
       services = nss, pam
@@ -26,9 +33,10 @@ cliconfig:
       domains = workshop
 
       [nss]
+      homedir_substring = /home
 
       [pam]
-      offline_credentials_expiration = 3600
+      offline_credentials_expiration = 60
 
       [domain/workshop]
       cache_credentials = True
@@ -36,13 +44,15 @@ cliconfig:
       auth_provider = ldap
       chpass_provider = ldap
       access_provider = ldap
-      ldap_uri = ldap://manager.workshop:1389
-      cache_credentials = True
+      ldap_uri = ldaps://manager.workshop:1686
       ldap_search_base = ou=users,dc=example,dc=org
       ldap_default_bind_dn = cn=admin,dc=example,dc=org
       ldap_default_authtok = ${PASSWORD}
       ldap_access_filter = (objectClass=posixAccount)
       ldap_access_order = filter
+      ldap_schema = rfc2307bis
+      ldap_tls_reqcert = allow
+      ldap_tls_cacert = /etc/sssd/certs/ca.crt
       EOF
       chmod 600 -R /etc/sssd
       chown -R root: /etc/sssd
