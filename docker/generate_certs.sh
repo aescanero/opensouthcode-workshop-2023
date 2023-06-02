@@ -7,6 +7,7 @@ sudo mkdir ldap var_ldap
 sudo chmod 777 ldap
 sudo chmod 777 var_ldap
 sudo < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32} >config/passfile
+sed -i s/'${PASSWORD}'/$(cat config/passfile)/g config/dex.conf
 echo "LDAP_SEARCH_BIND_PASSWORD=$(cat config/passfile)" >> .env
 POSTGRES_PASSWORD=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
 echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env

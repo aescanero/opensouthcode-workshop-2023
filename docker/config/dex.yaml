@@ -34,7 +34,7 @@ connectors:
     rootCA: /config/ca.crt
 
     bindDN: cn=admin,dc=example,dc=com
-    bindPW: password
+    bindPW: ${PASSWORD}
 
     # The attribute to display in the provided password prompt. If unset, will
     # display "Username"
