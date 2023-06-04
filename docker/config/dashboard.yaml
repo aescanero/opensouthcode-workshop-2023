@@ -26,6 +26,8 @@ cliconfig:
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb \
       dpkg -i containerd.io_1.3.9-1_amd64.deb docker-ce-cli_19.03.0~3-0~ubuntu-bionic_amd64.deb docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb
       curl -sfL https://get.k3s.io | sh -
+      mkdir ~/.kube
+      cat /etc/rancher/k3s/k3s.yaml >~/.kube/config
       apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates
       mkdir -p /etc/sssd/certs
       cat >/etc/sssd/certs/ca.crt << 'EOF'
@@ -93,20 +95,24 @@ cliconfig:
       helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       helm repo add jetstack https://charts.jetstack.io
       helm repo add istio https://istio-release.storage.googleapis.com/charts
+      helm repo add cilium https://helm.cilium.io
       helm repo update
       kubectl create ns monitoring
       kubectl create ns cert-manager
       kubectl create ns microservices
       kubectl create ns istio
       kubectl create ns wordpress
+      kubectl create ns test
       kubectl -n monitoring create secret generic influxdb-auth --from-literal admin-password=${PASSWORD} --from-literal admin-token=e37f514785d14ddef10c9e1c06bfb4c347fca00eee7f8797ff717a764bdd4b60
       cd opensouthcode-workshop-2023/docker/deployments
       sh cert-manager.sh
       sh influxdb.sh
       sh prometheus.sh
-      sh telegraf.sh
-      sh wordpress.sh
-      sh microservices.sh
+      sh tetragon.sh
+      cd telegraf && docker-compose up -d
+      
+
+
 
 
 
