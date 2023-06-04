@@ -19,7 +19,12 @@ cliconfig:
     userdata: |
       #!/bin/bash
       apt-get update
-      curl -sfL https://get.docker.com | sh -
+      #curl -sfL https://get.docker.com | sh -
+      cd /root
+      wget wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb \
+        https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb \
+        https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb \
+      dpkg -i containerd.io_1.3.9-1_amd64.deb docker-ce-cli_19.03.0~3-0~ubuntu-bionic_amd64.deb docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb
       curl -sfL https://get.k3s.io | sh -
       apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates
       mkdir -p /etc/sssd/certs
@@ -63,4 +68,36 @@ cliconfig:
       addgroup ${USER} sudo
       cd /root
       git clone https://github.com/aescanero/opensouthcode-workshop-2023
+      git clone https://github.com/aescanero/opensouthcode-workshop-2023-exercices
+      #Install the utilities in host
+      #Install all the utilities in docker
+      docker pull r.j3ss.co/amicontained:v0.4.9
+      pip3 install -U checkov
+      #Install all the utilities in kubernetes
+      curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+      sudo apt-get install apt-transport-https --yes
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+      sudo apt-get update
+      sudo apt-get install helm
+      helm repo add influxdata https://helm.influxdata.com/
+      helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      helm repo add jetstack https://charts.jetstack.io
+      helm repo add istio https://istio-release.storage.googleapis.com/charts
+      helm repo update
+      kubectl create ns monitoring
+      kubectl create ns cert-manager
+      kubectl create ns microservices
+      kubectl create ns istio
+      kubectl create ns wordpress
+      kubectl -n monitoring create secret generic influxdb-auth --from-literal admin-password=${PASSWORD} --from-literal admin-token=e37f514785d14ddef10c9e1c06bfb4c347fca00eee7f8797ff717a764bdd4b60
+      cd opensouthcode-workshop-2023/docker/deployments
+      sh cert-manager.sh
+      sh influxdb.sh
+      sh prometheus.sh
+      sh telegraf.sh
+      sh wordpress.sh
+      sh microservices.sh
+
+
+
 
