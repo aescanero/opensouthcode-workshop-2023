@@ -73,6 +73,16 @@ cliconfig:
       #Install all the utilities in docker
       docker pull r.j3ss.co/amicontained:v0.4.9
       pip3 install -U checkov
+      curl -s https://falco.org/repo/falcosecurity-packages.asc | sudo apt-key add -
+      echo "deb https://download.falco.org/packages/deb stable main" | \
+      tee /etc/apt/sources.list.d/falcosecurity.list
+      apt-get update
+      apt-get -y install linux-headers-$(uname -r)
+      apt-get install -y dialog
+      apt-get install -y falco
+      systemctl enable falco
+      systemctl start falco
+      apt-get install apparmor-utils -y
       #Install all the utilities in kubernetes
       curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
       sudo apt-get install apt-transport-https --yes
