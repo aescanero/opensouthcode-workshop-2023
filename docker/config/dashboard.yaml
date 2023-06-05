@@ -21,9 +21,9 @@ cliconfig:
       apt-get update
       #curl -sfL https://get.docker.com | sh -
       cd /root
-      wget wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb \
+      wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb \
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb \
-        https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb \
+        https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb
       dpkg -i containerd.io_1.3.9-1_amd64.deb docker-ce-cli_19.03.0~3-0~ubuntu-bionic_amd64.deb docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb
       curl -sfL https://get.k3s.io | sh -
       mkdir ~/.kube
@@ -75,16 +75,31 @@ cliconfig:
       #Install all the utilities in docker
       docker pull r.j3ss.co/amicontained:v0.4.9
       pip3 install -U checkov
+      curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+      curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/lens-archive-keyring.gpg > /dev/null
+      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/lens-archive-keyring.gpg] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee /etc/apt/sources.list.d/lens.list > /dev/null
+      sudo apt update
+      sudo apt install lens
+      sudo apt-get install wget apt-transport-https gnupg lsb-release
+      wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+      echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+      sudo apt-get update
+      sudo apt-get install trivy
       curl -s https://falco.org/repo/falcosecurity-packages.asc | sudo apt-key add -
       echo "deb https://download.falco.org/packages/deb stable main" | \
       tee /etc/apt/sources.list.d/falcosecurity.list
       apt-get update
-      apt-get -y install linux-headers-$(uname -r)
-      apt-get install -y dialog
-      apt-get install -y falco
-      systemctl enable falco
-      systemctl start falco
+      apt install -y dkms make linux-headers-$(uname -r)
+      apt install -y clang llvm
+      apt install -y dialog
+      FALCO_FRONTEND=noninteractive apt-get install -y falco
+      systemctl mask falcoctl-artifact-follow.service
+      falco-driver-loader bpf
+      systemctl enable falco-bpf.service
+      systemctl start falco-bpf.service
       apt-get install apparmor-utils -y
+
       #Install all the utilities in kubernetes
       curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
       sudo apt-get install apt-transport-https --yes
@@ -110,7 +125,13 @@ cliconfig:
       sh prometheus.sh
       sh tetragon.sh
       cd telegraf && docker-compose up -d
-      
+
+      apt-get install -y unzip
+      curl -OsL https://github.com/int128/kubelogin/releases/download/v1.27.0/kubelogin_linux_amd64.zip
+      unzip kubelogin_linux_amd64.zip kubelogin
+      rm -f kubelogin_linux_amd64.zip
+      mv kubelogin /usr/local/bin/kubectl-oidc_login
+      sudo apt-get install chromium-browser
 
 
 
