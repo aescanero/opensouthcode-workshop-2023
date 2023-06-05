@@ -79,7 +79,7 @@ connectors:
       # Required. Attribute to map to Email.
       emailAttr: mail
       # Maps to display name of users. No default value.
-      nameAttr: name
+      nameAttr: cn
       # Maps to preferred username of users. No default value.
       preferredUsernameAttr: uid
 
