@@ -1,5 +1,5 @@
 
-issuer: http://manager.workshop:5556/dex
+issuer: https://manager.workshop:5554/dex
 storage:
   type: sqlite3
   config:
@@ -9,8 +9,8 @@ storage:
 web:
   http: 0.0.0.0:5556
   https: 0.0.0.0:5554
-  tlsCert: /config/ssl/self.cert
-  tlsKey: /config/ssl/self-ssl.key
+  tlsCert: /config/ssl/dex.cert
+  tlsKey: /config/ssl/dex.key
 
 # Dex UI configuration
 frontend:

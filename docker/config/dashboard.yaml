@@ -21,18 +21,28 @@ cliconfig:
       apt-get update
       #curl -sfL https://get.docker.com | sh -
       cd /root
+      #El docker más antiguo posible soportado por Ubuntu 22.04
       wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb \
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb \
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb
       dpkg -i containerd.io_1.3.9-1_amd64.deb docker-ce-cli_19.03.0~3-0~ubuntu-bionic_amd64.deb docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb
+      #Instalando K3s
       curl -sfL https://get.k3s.io | sh -
+      #Creamos una configuración local de kubeadmin para Helm
       mkdir ~/.kube
       cat /etc/rancher/k3s/k3s.yaml >~/.kube/config
-      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates
+
+
+      #Instalamos cliente gráfico
+      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates unzip
+      #Preparamos CA para sssd y sistema.
       mkdir -p /etc/sssd/certs
       cat >/etc/sssd/certs/ca.crt << 'EOF'
       ${CA.CRT}
       EOF
+      cp /etc/sssd/certs/ca.crt /usr/local/share/ca-certificates/
+      update-ca-certificates
+      #Configuración de SSSD
       cat >/etc/sssd/sssd.conf << 'EOF'
       [sssd]
       services = nss, pam
@@ -61,39 +71,51 @@ cliconfig:
       ldap_tls_reqcert = allow
       ldap_tls_cacert = /etc/sssd/certs/ca.crt
       EOF
+      #Revisamos permisos de SSSD y activamos el servicio
       chmod 600 -R /etc/sssd
       chown -R root: /etc/sssd
       sssctl config-check
       systemctl restart sssd
       systemctl enable sssd
       pam-auth-update --enable mkhomedir
+      #Añadimos el usuario al grupo sudo
       addgroup ${USER} sudo
-      cd /root
+      #Descargamos los repositorios del workshop
       git clone https://github.com/aescanero/opensouthcode-workshop-2023
       git clone https://github.com/aescanero/opensouthcode-workshop-2023-exercices
-      #Install the utilities in host
-      #Install all the utilities in docker
+      #Configuramos el home por defecto del usuario con los ejercicios y las configuraciones necesarias
+      cp -r ~/opensouthcode-workshop-2023-exercices/0* /etc/skel/.
+      echo "KUBECONFIG=~/.kube/config" >> /etc/skel/.profile
+      #Preparamos las aplicaciones del workshop:
+      # AMICONTAINERD
       docker pull r.j3ss.co/amicontained:v0.4.9
+      # CHECKOV
       pip3 install -U checkov
+      # SYFT
       curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      # GRYPE
       curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+      # OPENLENS
       curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/lens-archive-keyring.gpg > /dev/null
       echo "deb [arch=amd64 signed-by=/usr/share/keyrings/lens-archive-keyring.gpg] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee /etc/apt/sources.list.d/lens.list > /dev/null
+      # INSTALAMOS PAQUETES PRE-CONFIGURACION REPOSITORIOS
       sudo apt update
-      sudo apt install lens
-      sudo apt-get install wget apt-transport-https gnupg lsb-release
+      sudo apt install -y wget apt-transport-https gnupg lsb-release dkms make linux-headers-$(uname -r) clang llvm dialog
+      # TRIVY
       wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
       echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
-      sudo apt-get update
-      sudo apt-get install trivy
+      # FALCO
       curl -s https://falco.org/repo/falcosecurity-packages.asc | sudo apt-key add -
       echo "deb https://download.falco.org/packages/deb stable main" | \
       tee /etc/apt/sources.list.d/falcosecurity.list
-      apt-get update
-      apt install -y dkms make linux-headers-$(uname -r)
-      apt install -y clang llvm
-      apt install -y dialog
-      FALCO_FRONTEND=noninteractive apt-get install -y falco
+      # HELM
+      curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
+      sudo apt-get install apt-transport-https --yes
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+      # INSTALAMOS TODO LOS PAQUETES JUNTOS
+      apt update
+      FALCO_FRONTEND=noninteractive apt-get install -y falco lens trivy helm
+      # FALCO POST-INSTALL
       systemctl mask falcoctl-artifact-follow.service
       falco-driver-loader bpf
       systemctl enable falco-bpf.service
@@ -101,11 +123,6 @@ cliconfig:
       apt-get install apparmor-utils -y
 
       #Install all the utilities in kubernetes
-      curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
-      sudo apt-get install apt-transport-https --yes
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
-      sudo apt-get update
-      sudo apt-get install helm
       helm repo add influxdata https://helm.influxdata.com/
       helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
       helm repo add jetstack https://charts.jetstack.io
@@ -126,12 +143,22 @@ cliconfig:
       sh tetragon.sh
       cd telegraf && docker-compose up -d
 
-      apt-get install -y unzip
+      # KUBELOGIN
       curl -OsL https://github.com/int128/kubelogin/releases/download/v1.27.0/kubelogin_linux_amd64.zip
       unzip kubelogin_linux_amd64.zip kubelogin
       rm -f kubelogin_linux_amd64.zip
       mv kubelogin /usr/local/bin/kubectl-oidc_login
+
+      # INSTALAMOS NAVEGADOR Y PRECARGAMOS CERTIFICADO
       sudo apt-get install chromium-browser
+      certutil -d sql:/etc/skel/.pki/nssdb -A -t "P,," -n manager.workshop -i /etc/sssd/certs/ca.crt
+
+      #RECONFIGURAMOS K3s para OIDC
+      sed -i 's/server \\/server --kube-apiserver-arg=oidc-issuer-url=https:\/\/manager.workshop:5554\/dex --kube-apiserver-arg=oidc-client-id=kubernetes \\/' /etc/systemd/system/k3s.service
+      systemctl daemon-reload
+      systemctl restart k3s
+
+
 
 
 
