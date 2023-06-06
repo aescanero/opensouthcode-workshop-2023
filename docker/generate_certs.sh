@@ -13,16 +13,17 @@ POSTGRES_PASSWORD=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
 echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
 echo "PASSWORD=$POSTGRES_PASSWORD" >> .env
 sudo chmod 444 config/passfile 
-sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:0.1.2-linux-amd64 \
+sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:v0.1.3 \
   cert new --cafile "/config/ca.crt" --cakeyfile "/config/ca.key" \
   --certfile "/config/ldap.crt" --certkeyfile "/config/ldap.key" \
   --hosts *,*.disasterproject.com,localhost,127.0.0.1,*.workshop
-sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:0.1.2-linux-amd64 \
+sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:v0.1.3 \
   cert new --cafile "/config/ca.crt" --cakeyfile "/config/ca.key" \
   --certfile "/config/ssl/self.cert" --certkeyfile "/config/ssl/self-ssl.key" \
   --hosts *,*.disasterproject.com,localhost,127.0.0.1,*.workshop
-sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:0.1.2-linux-amd64 \
+sudo docker run -v ./config:/config --name micropki --rm docker.io/aescanero/micropki:v0.1.3 \
   cert new --cafile "/config/ca.crt" --cakeyfile "/config/ca.key" \
   --certfile "/config/ssl/dex.cert" --certkeyfile "/config/ssl/dex.key" \
-  --hosts *,*.disasterproject.com,localhost,127.0.0.1,*.workshop
+  --hosts *,*.disasterproject.com,localhost,127.0.0.1,*.workshop \
+  --commonname "manager.workshop"
 #sudo chmod o-w config
