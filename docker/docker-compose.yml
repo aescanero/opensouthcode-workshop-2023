@@ -84,6 +84,7 @@ services:
     command: ["/usr/local/bin/dex","serve","/config/dex.yaml"]
     ports:
       - 5556:5556
+      - 5554:5554
       - 33223:33223
       - 47915:47915
     networks:
