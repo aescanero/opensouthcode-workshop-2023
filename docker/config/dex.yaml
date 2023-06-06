@@ -127,6 +127,6 @@ enablePasswordDB: true
 staticClients:
   - id: kubernetes
     redirectURIs:
-    - 'http://localhost:8000'
+    - 'https://localhost:6443'
     name: 'Kubernetes'
     secret: aGVsbG9fZnJpZW5kCg==
