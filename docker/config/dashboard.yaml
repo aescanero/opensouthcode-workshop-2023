@@ -90,7 +90,7 @@ cliconfig:
       git clone https://github.com/aescanero/opensouthcode-workshop-2023-exercices
       #Configuramos el home por defecto del usuario con los ejercicios y las configuraciones necesarias
       cp -r ~/opensouthcode-workshop-2023-exercices/0* /etc/skel/.
-      echo "KUBECONFIG=~/.kube/config" >> /etc/skel/.profile
+      echo "KUBECONFIG=~/.kube/config" >> /etc/skel/.bashrc
       mkdir -p /etc/skel/.pki/nssdb
       certutil -d sql:/etc/skel/.pki/nssdb -A -t "P,," -n manager.workshop -i /etc/sssd/certs/ca.crt
       #Preparamos las aplicaciones del workshop:
