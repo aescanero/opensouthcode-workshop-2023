@@ -16,30 +16,33 @@ cliconfig:
     instancetype: t3.medium
     storage:
       volumetype: gp3
-      volumensize: 40
+      volumesize: 40
     region: us-east-1
     imageid: ami-053b0d53c279acc90
     userdata: |
       #!/bin/bash
       apt-get update
-      #curl -sfL https://get.docker.com | sh -
       cd /root
+
       #El docker más antiguo posible soportado por Ubuntu 22.04
       wget https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb \
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb \
         https://download.docker.com/linux/ubuntu/dists/bionic/pool/stable/amd64/containerd.io_1.3.9-1_amd64.deb
       dpkg -i containerd.io_1.3.9-1_amd64.deb docker-ce-cli_19.03.0~3-0~ubuntu-bionic_amd64.deb docker-ce-cli_19.03.15~3-0~ubuntu-bionic_amd64.deb docker-ce_19.03.15~3-0~ubuntu-bionic_amd64.deb
+
       #Instalando K3s
       curl -sfL https://get.k3s.io | sh -
+
       #Creamos una configuración local de kubeadmin para Helm
       mkdir ~/.kube
       cat /etc/rancher/k3s/k3s.yaml >~/.kube/config
-
+      chmod 600 ~/.kube/config
 
       #Instalamos cliente gráfico y varias utilidades
-      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates unzip libnss3-tools chromium-browser
-      #Paramos XRDP hasta que esté todo listo
-      systemctl stop xrdp
+      apt-get install -y xfce4 sssd xrdp git python3-pip docker-compose sssd-ldap ldap-utils sssd-tools ca-certificates unzip libnss3-tools
+      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+      dpkg -i google-chrome-stable_current_amd64.deb
+
       #Preparamos CA para sssd y sistema.
       mkdir -p /etc/sssd/certs
       cat >/etc/sssd/certs/ca.crt << 'EOF'
@@ -47,6 +50,7 @@ cliconfig:
       EOF
       cp /etc/sssd/certs/ca.crt /usr/local/share/ca-certificates/
       update-ca-certificates
+
       #Configuración de SSSD
       cat >/etc/sssd/sssd.conf << 'EOF'
       [sssd]
@@ -76,6 +80,7 @@ cliconfig:
       ldap_tls_reqcert = allow
       ldap_tls_cacert = /etc/sssd/certs/ca.crt
       EOF
+
       #Revisamos permisos de SSSD y activamos el servicio
       chmod 600 -R /etc/sssd
       chown -R root: /etc/sssd
@@ -83,16 +88,21 @@ cliconfig:
       systemctl restart sssd
       systemctl enable sssd
       pam-auth-update --enable mkhomedir
+
       #Añadimos el usuario al grupo sudo
       addgroup ${USER} sudo
+
       #Descargamos los repositorios del workshop
       git clone https://github.com/aescanero/opensouthcode-workshop-2023
       git clone https://github.com/aescanero/opensouthcode-workshop-2023-exercices
+
       #Configuramos el home por defecto del usuario con los ejercicios y las configuraciones necesarias
       cp -r ~/opensouthcode-workshop-2023-exercices/0* /etc/skel/.
-      echo "KUBECONFIG=~/.kube/config" >> /etc/skel/.bashrc
+      echo "export KUBECONFIG=~/.kube/config" >> /etc/skel/.bashrc
+      echo "export KUBECONFIG=~/.kube/config" >> /etc/skel/.profile
       mkdir -p /etc/skel/.pki/nssdb
-      certutil -d sql:/etc/skel/.pki/nssdb -A -t "P,," -n manager.workshop -i /etc/sssd/certs/ca.crt
+      certutil -d sql:/etc/skel/.pki/nssdb -A -t "CT,C,C" -n manager.workshop -i /etc/sssd/certs/ca.crt
+
       #Preparamos las aplicaciones del workshop:
       # AMICONTAINERD
       docker pull r.j3ss.co/amicontained:v0.4.9
@@ -105,23 +115,29 @@ cliconfig:
       # OPENLENS
       curl -fsSL https://downloads.k8slens.dev/keys/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/lens-archive-keyring.gpg > /dev/null
       echo "deb [arch=amd64 signed-by=/usr/share/keyrings/lens-archive-keyring.gpg] https://downloads.k8slens.dev/apt/debian stable main" | sudo tee /etc/apt/sources.list.d/lens.list > /dev/null
+
       # INSTALAMOS PAQUETES PRE-CONFIGURACION REPOSITORIOS
       sudo apt update
       sudo apt install -y wget apt-transport-https gnupg lsb-release dkms make linux-headers-$(uname -r) clang llvm dialog
+
       # TRIVY
       wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
       echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+
       # FALCO
       curl -s https://falco.org/repo/falcosecurity-packages.asc | sudo apt-key add -
       echo "deb https://download.falco.org/packages/deb stable main" | \
       tee /etc/apt/sources.list.d/falcosecurity.list
+
       # HELM
       curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg > /dev/null
       sudo apt-get install apt-transport-https --yes
       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
       # INSTALAMOS TODO LOS PAQUETES JUNTOS
       apt update
       FALCO_FRONTEND=noninteractive apt-get install -y falco lens trivy helm
+
       # FALCO POST-INSTALL
       systemctl mask falcoctl-artifact-follow.service
       falco-driver-loader bpf
@@ -142,7 +158,12 @@ cliconfig:
       kubectl create ns istio
       kubectl create ns wordpress
       kubectl create ns test
-      kubectl -n monitoring create secret generic influxdb-auth --from-literal admin-password=${PASSWORD} --from-literal admin-token=e37f514785d14ddef10c9e1c06bfb4c347fca00eee7f8797ff717a764bdd4b60
+      INFLUXDB_ADMIN_PASSWORD="$(openssl rand -base64 20 | tr -d '/=+')"
+      echo -n $INFLUXDB_ADMIN_PASSWORD >/etc/skel/05/influx_admin_pass
+      kubectl -n monitoring create secret generic influxdb-auth --from-literal admin-password=${INFLUXDB_ADMIN_PASSWORD} --from-literal admin-token=e37f514785d14ddef10c9e1c06bfb4c347fca00eee7f8797ff717a764bdd4b60
+      GRAFANA_ADMIN_PASSWORD="$(openssl rand -base64 20 | tr -d '/=+')"
+      echo -n $GRAFANA_ADMIN_PASSWORD >/etc/skel/05/grafana_admin_pass
+      kubectl -n monitoring create secret generic kube-prometheus-stack-grafana --from-literal admin-password=${GRAFANA_ADMIN_PASSWORD} --from-literal admin-user=admin
       cd opensouthcode-workshop-2023/docker/deployments
       sh cert-manager.sh
       sh influxdb.sh
@@ -157,15 +178,11 @@ cliconfig:
       mv kubelogin /usr/local/bin/kubectl-oidc_login
 
       #RECONFIGURAMOS K3s para OIDC
-      sed -i 's/server \\/server --kube-apiserver-arg=oidc-issuer-url=https:\/\/manager.workshop:5554\/dex --kube-apiserver-arg=oidc-client-id=kubernetes \\/' /etc/systemd/system/k3s.service
+      sed -i 's/server \\/server --kube-apiserver-arg=oidc-issuer-url=https://manager.workshop:5554/dex --kube-apiserver-arg=oidc-client-id=kubernetes --kube-apiserver-arg=oidc-ca-file=/etc/sssd/certs/ca.crt --kube-apiserver-arg=oidc-groups-claim=groups --kube-apiserver-arg=oidc-username-claim=email \\/' /etc/systemd/system/k3s.service
       systemctl daemon-reload
       systemctl restart k3s
 
-      #Iniciamos XRDP
-      systemctl enable xrdp
-      systemctl start xrdp
-
-
+      
 
 
 
